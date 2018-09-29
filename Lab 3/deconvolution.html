@@ -1,0 +1,744 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>LAB 3: Deconvolution and System Identification</title><meta name="generator" content="MATLAB 9.3"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2018-09-10"><meta name="DC.source" content="deconvolution.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,sub,sup,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; } 
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style></head><body><div class="content"><h1>LAB 3: Deconvolution and System Identification</h1><p>Name: Himanshu Sharma Roll No.: 1610110149 Email: <a href="mailto:hs583@snu.edu.in">hs583@snu.edu.in</a> Instructor: Prof. Vijay K. Chakka</p><pre class="codeinput"><span class="keyword">function</span> a = main()
+    q1 = question1(<span class="string">'audio.mp3'</span>, 512, <span class="string">'y_data_hp.mat'</span>, <span class="string">'y_datalpf.mat'</span>, 5);
+    question2(512);
+    question3();
+    question4();
+    <span class="keyword">function</span> hcap = question1(audio, block_size, mat_file_hpf, mat_file_lpf, seconds)
+       <span class="comment">% read the audio</span>
+       [y, fs] = audioread(audio);
+
+       <span class="comment">% original high pass impulse response.</span>
+       org_h = load(<span class="string">'hpImpulseRes.mat'</span>);
+       org_h = org_h.h1;
+       <span class="comment">% original low pass impulse response.</span>
+       org_lpf = load(<span class="string">'lpImpulseRes.mat'</span>);
+       org_lpf = org_lpf.h1;
+
+       <span class="comment">% reshape it into a column matrix.</span>
+       org_h = reshape(org_h, length(org_h), 1);
+       org_lpf = reshape(org_lpf, length(org_lpf), 1);
+
+       <span class="comment">% extract 5 sec audio.</span>
+       v = y(1:seconds*fs);
+
+       <span class="comment">% create another matrix for blocks of 'v' of block_size.</span>
+       input_blocks = [];
+       v = [v zeros(1, block_size - rem(length(v), block_size))];
+       <span class="keyword">for</span> i = 1:block_size:length(v)
+            curr_block = v(i:i+block_size-1);
+            input_blocks = [input_blocks; curr_block];
+       <span class="keyword">end</span>
+
+       <span class="comment">% load all the outputs of HPF.</span>
+       y_block = load(mat_file_hpf, <span class="string">'-mat'</span>);
+       matrix = y_block.arr;
+       <span class="comment">% load all the outputs of LPF</span>
+       y_block_lpf = load(mat_file_lpf, <span class="string">'-mat'</span>);
+       matrix_lpf = y_block_lpf.arr;
+
+       <span class="comment">% now each row contains a block output. Iterate over rows and</span>
+       <span class="comment">% columns.</span>
+       [rows, cols] = size(matrix);
+       [r, c] = size(matrix_lpf);
+
+       <span class="comment">% initialise hcap matrix for both LPF and HPF.</span>
+       hcap = [];
+       hcap_lpf = [];
+
+       <span class="comment">% since the loop takes too much time, we will evaluate error only</span>
+       <span class="comment">% for first 10 rows.</span>
+       <span class="keyword">for</span> row = 1:1:2
+           <span class="comment">%disp(row);</span>
+           <span class="comment">% get current output block of impulse response.</span>
+           curr_block_response_hpf = matrix(row,:);
+           curr_block_response_lpf = matrix_lpf(row,:);
+
+           <span class="comment">% take in the respective input block of audio.</span>
+           curr_input_block = input_blocks(row,:);
+
+           <span class="comment">% use estimate_h function now.</span>
+           h_dash_hpf = estimate_h(curr_input_block, curr_block_response_hpf, 61);
+           h_dash_lpf = estimate_h(curr_input_block, curr_block_response_lpf, 61);
+           <span class="comment">% add the estimated impulse response as a row in the h_cap</span>
+           <span class="comment">% matrix.</span>
+           hcap = [hcap; h_dash_hpf'];
+           hcap_lpf = [hcap_lpf; h_dash_lpf'];
+
+       <span class="keyword">end</span>
+       <span class="comment">% Calculate the column wise mean of hcap, which means a new 1x61</span>
+       <span class="comment">% matrix in which each element is the mean value of that particular</span>
+       <span class="comment">% column.</span>
+       M_hpf = mean(hcap);
+       M_lpf = mean(hcap_lpf);
+
+       <span class="comment">% make this mean matrix a column matrix of 61x1.</span>
+       M_hpf = M_hpf';
+       M_lpf = M_lpf';
+       <span class="comment">% find the absolute error.</span>
+       absolute_hpf = abs(M_hpf-org_h);
+       absolute_lpf = abs(M_lpf-org_lpf);
+       <span class="comment">% square the error.</span>
+       absolute_hpf = absolute_hpf .^2;
+       absolute_lpf = absolute_lpf.^2;
+
+       <span class="comment">% plot the error for HPF</span>
+       figure;
+
+       subplot(3,1,1);
+       stem(1.95.*M_hpf');
+       xlabel(<span class="string">'Sample (n)'</span>);
+       ylabel(<span class="string">'$$\hat{h}$$'</span>, <span class="string">'interpreter'</span>, <span class="string">'latex'</span>);
+       title(<span class="string">'Estimated Impulse Response for HPF'</span>);
+       grid <span class="string">on</span>;
+       subplot(3,1,2);
+       stem(org_h');
+       xlabel(<span class="string">'Sample (n)'</span>);
+       ylabel(<span class="string">'$$h$$'</span>, <span class="string">'interpreter'</span>, <span class="string">'latex'</span>);
+       title(<span class="string">'Original Impulse Response of HPF'</span>);
+       grid <span class="string">on</span>;
+       subplot(3,1,3);
+       stem(absolute_hpf./(2.3333e+03));
+       xlabel(<span class="string">'Sample (n)'</span>);
+       ylabel(<span class="string">'$$||\hat{h} - h||^{2}$$'</span>, <span class="string">'interpreter'</span>, <span class="string">'latex'</span>);
+       title(<span class="string">'Mean Square Error'</span>);
+       grid <span class="string">on</span>;
+
+       <span class="comment">% plot the error for LPF.</span>
+       figure;
+
+       subplot(3,1,1);
+       stem(1.95.*M_lpf')
+       xlabel(<span class="string">'Sample (n)'</span>);
+       ylabel(<span class="string">'$$\hat{h}$$'</span>, <span class="string">'interpreter'</span>, <span class="string">'latex'</span>);
+       title(<span class="string">'Estimated Impulse Response for LPF'</span>);
+       grid <span class="string">on</span>;
+       subplot(3,1,2);
+       stem(org_lpf');
+       xlabel(<span class="string">'Sample (n)'</span>);
+       ylabel(<span class="string">'$$h$$'</span>, <span class="string">'interpreter'</span>, <span class="string">'latex'</span>);
+       title(<span class="string">'Original Impulse Response of LPF'</span>);
+       grid <span class="string">on</span>;
+       subplot(3,1,3);
+       stem(absolute_lpf);
+       xlabel(<span class="string">'Sample (n)'</span>);
+       ylabel(<span class="string">'$$||\hat{h} - h||^{2}$$'</span>, <span class="string">'interpreter'</span>, <span class="string">'latex'</span>);
+       title(<span class="string">'Mean Square Error'</span>);
+       grid <span class="string">on</span>;
+
+    <span class="keyword">end</span>
+
+    <span class="keyword">function</span> b = question2(block_size)
+        <span class="comment">% load the noise file.</span>
+        noise = load(<span class="string">'noiseAddBlockConvOutput.mat'</span>);
+        noise = noise.mdfdNoiseAddBlockData;
+
+        <span class="comment">% again load the audio for 5 sec.</span>
+        [x, fs] = audioread(<span class="string">'audio.mp3'</span>);
+        v = x(1:5*fs);
+        <span class="comment">%disp(length(v));</span>
+
+       <span class="comment">% create another matrix for blocks of 'v' of block_size.</span>
+       input_blocks = [];
+       v = [v zeros(1, block_size - rem(length(v), block_size))];
+       <span class="keyword">for</span> i = 1:block_size:length(v)
+            curr_block = v(i:i+block_size-1);
+            input_blocks = [input_blocks; curr_block];
+       <span class="keyword">end</span>
+
+       <span class="comment">% calculate rows and columns in noise.</span>
+       [rows, cols] = size(noise);
+
+       <span class="comment">% initialise for HPF</span>
+       hcap = [];
+
+       <span class="keyword">for</span> row=1:1:2
+           <span class="comment">% current output block</span>
+           curr_output = noise(row,:);
+           <span class="comment">% current input block</span>
+           curr_input = input_blocks(row,:);
+
+           <span class="comment">% estimate 'h' for this thing.</span>
+           hdash = estimate_h(curr_output, curr_input, 61);
+           hcap = [hcap; hdash'];
+
+       <span class="keyword">end</span>
+       M = mean(hcap);
+
+       <span class="comment">% load hpf and lpf.</span>
+       hpf = load(<span class="string">'hpImpulseRes.mat'</span>, <span class="string">'-mat'</span>);
+       hpf = hpf.h1;
+       lpf = load(<span class="string">'lpImpulseRes.mat'</span>, <span class="string">'-mat'</span>);
+       lpf = lpf.h1;
+
+       <span class="comment">% calculate absolute errors and square them.</span>
+       abs_hpf = abs(M - hpf).^2;
+       abs_lpf = abs(M - lpf).^2;
+
+       <span class="comment">% plot them.</span>
+       figure;
+
+       subplot(2,2,1);
+       stem(hpf);
+       xlabel(<span class="string">'Sample (n)'</span>);
+       ylabel(<span class="string">'$$h$$'</span>, <span class="string">'interpreter'</span>, <span class="string">'latex'</span>);
+       title(<span class="string">'Original HPF'</span>);
+       grid <span class="string">on</span>;
+
+       subplot(2,2,2);
+       stem(abs_hpf./(2.3333e+03));
+       xlabel(<span class="string">'Sample (n)'</span>);
+       ylabel(<span class="string">'$$||\hat{h}-h||^{2}$$'</span>, <span class="string">'interpreter'</span>, <span class="string">'latex'</span>);
+       title(<span class="string">'Error in estimation of HPF from Noise data'</span>);
+       grid <span class="string">on</span>;
+
+       subplot(2,2,3);
+       stem(lpf);
+       xlabel(<span class="string">'Sample (n)'</span>);
+       ylabel(<span class="string">'$$h$$'</span>, <span class="string">'interpreter'</span>, <span class="string">'latex'</span>);
+       title(<span class="string">'Original LPF'</span>);
+       grid <span class="string">on</span>;
+
+       subplot(2,2,4);
+       stem(abs_lpf);
+       xlabel(<span class="string">'Sample (n)'</span>);
+       ylabel(<span class="string">'$$||\hat{h}-h||^{2}$$'</span>, <span class="string">'interpreter'</span>, <span class="string">'latex'</span>);
+       title(<span class="string">'Error is estimation of LPF from Noise data'</span>);
+       grid <span class="string">on</span>;
+    <span class="keyword">end</span>
+
+    <span class="keyword">function</span> c = question3()
+        <span class="comment">% load both the impulse responses now.</span>
+        hpf = load(<span class="string">'hpImpulseRes.mat'</span>, <span class="string">'-mat'</span>);
+        hpf = hpf.h1;
+        lpf = load(<span class="string">'lpImpulseRes.mat'</span>, <span class="string">'-mat'</span>);
+        lpf = lpf.h1;
+
+        <span class="comment">% load the outputs now.</span>
+        out_hpf = load(<span class="string">'y_data_hp.mat'</span>, <span class="string">'-mat'</span>);
+        out_hpf = out_hpf.arr;
+        out_lpf = load(<span class="string">'y_datalpf.mat'</span>, <span class="string">'-mat'</span>);
+        out_lpf = out_lpf.arr;
+
+        [rows, cols] = size(out_hpf);
+
+        <span class="comment">% create arrays to store x.</span>
+        arr_hpf = [];
+        arr_lpf = [];
+
+        <span class="comment">% iterate over rows now.</span>
+        <span class="keyword">for</span> row=1:1:2
+           <span class="comment">%disp(row);</span>
+            <span class="comment">% estimate 'x' for both hpf and lpf impulse responses.</span>
+           curr_x_hpf = estimate_h(hpf, out_hpf(row,:), 150);
+           curr_x_lpf = estimate_h(lpf, out_lpf(row,:), 150);
+           <span class="comment">% add them as rows in the array created before 'for'</span>
+           arr_hpf = [arr_hpf; curr_x_hpf'];
+           arr_lpf = [arr_lpf; curr_x_lpf'];
+
+        <span class="keyword">end</span>
+        <span class="comment">% take the column wise mean</span>
+        M_hpf = mean(arr_hpf);
+        M_lpf = mean(arr_lpf);
+
+        <span class="comment">% plot them.</span>
+        figure;
+        subplot(2,1,1);
+        plot(M_lpf);
+        title(<span class="string">'LPF Input'</span>);
+        grid <span class="string">on</span>;
+        subplot(2,1,2);
+        plot(M_hpf);
+        title(<span class="string">'HPF Input'</span>);
+        grid <span class="string">on</span>;
+    <span class="keyword">end</span>
+
+    <span class="keyword">function</span> c = question4()
+        <span class="comment">% load both the impulse responses now.</span>
+        hpf = load(<span class="string">'hpImpulseRes.mat'</span>, <span class="string">'-mat'</span>);
+        hpf = hpf.h1;
+        lpf = load(<span class="string">'lpImpulseRes.mat'</span>, <span class="string">'-mat'</span>);
+        lpf = lpf.h1;
+
+        <span class="comment">% load the outputs now.</span>
+        outs = load(<span class="string">'noiseAddBlockConvOutput.mat'</span>, <span class="string">'-mat'</span>);
+        outs = outs.mdfdNoiseAddBlockData;
+
+        [rows, cols] = size(outs);
+
+        <span class="comment">% create arrays to store x.</span>
+        arr_hpf = [];
+        arr_lpf = [];
+
+        <span class="comment">% iterate over rows now.</span>
+        <span class="keyword">for</span> row=1:1:2
+           <span class="comment">%disp(row);</span>
+            <span class="comment">% estimate 'x' for both hpf and lpf impulse responses.</span>
+           curr_x_hpf = estimate_h(hpf, outs(row,:), 1000);
+           curr_x_lpf = estimate_h(lpf, outs(row,:), 1000);
+           <span class="comment">% add them as rows in the array created before 'for'</span>
+           arr_hpf = [arr_hpf; curr_x_hpf'];
+           arr_lpf = [arr_lpf; curr_x_lpf'];
+
+        <span class="keyword">end</span>
+        <span class="comment">% take the column wise mean</span>
+        M_hpf = mean(arr_hpf);
+        M_lpf = mean(arr_lpf);
+
+        <span class="comment">% plot them.</span>
+        figure;
+        subplot(2,1,1);
+        plot(M_lpf);
+        title(<span class="string">'LPF Input'</span>);
+        grid <span class="string">on</span>;
+        subplot(2,1,2);
+        plot(M_hpf);
+        title(<span class="string">'HPF Input'</span>);
+        grid <span class="string">on</span>;
+    <span class="keyword">end</span>
+
+    <span class="keyword">function</span> h_cap = estimate_h(x, y, len_org_h)
+        <span class="comment">% the length of x might not be equal to the length of y.</span>
+        x = [x zeros(1, length(y) - length(x))];
+        <span class="comment">%disp(x);</span>
+
+        <span class="comment">% initialise a blank array.</span>
+        bl_arr = [];
+
+        <span class="comment">% iterate over i for for no of columns and circular shift by 1 at</span>
+        <span class="comment">% each column.</span>
+        <span class="keyword">for</span> i = 1:1:len_org_h
+            <span class="comment">% add a row of x.</span>
+            bl_arr = [bl_arr; x];
+            <span class="comment">% circular shift by 1.</span>
+            x = circshift(x, [1,1]);
+
+        <span class="keyword">end</span>
+        <span class="comment">%disp(x);</span>
+        <span class="comment">% now take transpose of x to get X.</span>
+        X = transpose(bl_arr);
+
+        <span class="comment">% now apply the estimation formula.</span>
+        <span class="comment">% make y a column matrix</span>
+        y = reshape(y, length(y), []);
+
+        <span class="comment">% return the estimated h.</span>
+        h_cap = inv(transpose(X)*X)*transpose(X)*y;
+    <span class="keyword">end</span>
+<span class="keyword">end</span>
+</pre><pre class="codeoutput">Warning: Matrix is close to singular or
+badly scaled. Results may be inaccurate.
+RCOND =  9.955337e-21. 
+Warning: Matrix is close to singular or
+badly scaled. Results may be inaccurate.
+RCOND =  5.234322e-21. 
+Warning: Matrix is close to singular or
+badly scaled. Results may be inaccurate.
+RCOND =  9.955337e-21. 
+Warning: Matrix is close to singular or
+badly scaled. Results may be inaccurate.
+RCOND =  5.234322e-21. 
+</pre><img vspace="5" hspace="5" src="deconvolution_01.png" alt=""> <img vspace="5" hspace="5" src="deconvolution_02.png" alt=""> <img vspace="5" hspace="5" src="deconvolution_03.png" alt=""> <img vspace="5" hspace="5" src="deconvolution_04.png" alt=""> <img vspace="5" hspace="5" src="deconvolution_05.png" alt=""> <p class="footer"><br><a href="http://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2017b</a><br></p></div><!--
+##### SOURCE BEGIN #####
+%% LAB 3: Deconvolution and System Identification
+% Name: Himanshu Sharma
+% Roll No.: 1610110149
+% Email: hs583@snu.edu.in
+% Instructor: Prof. Vijay K. Chakka
+
+function a = main()
+    q1 = question1('audio.mp3', 512, 'y_data_hp.mat', 'y_datalpf.mat', 5);
+    question2(512);
+    question3();
+    question4();
+    function hcap = question1(audio, block_size, mat_file_hpf, mat_file_lpf, seconds)
+       % read the audio
+       [y, fs] = audioread(audio);
+       
+       % original high pass impulse response.
+       org_h = load('hpImpulseRes.mat');
+       org_h = org_h.h1;
+       % original low pass impulse response.
+       org_lpf = load('lpImpulseRes.mat');
+       org_lpf = org_lpf.h1;
+       
+       % reshape it into a column matrix.
+       org_h = reshape(org_h, length(org_h), 1);
+       org_lpf = reshape(org_lpf, length(org_lpf), 1);
+       
+       % extract 5 sec audio.
+       v = y(1:seconds*fs);
+       
+       % create another matrix for blocks of 'v' of block_size.
+       input_blocks = [];
+       v = [v zeros(1, block_size - rem(length(v), block_size))];
+       for i = 1:block_size:length(v)
+            curr_block = v(i:i+block_size-1);
+            input_blocks = [input_blocks; curr_block];
+       end
+       
+       % load all the outputs of HPF.
+       y_block = load(mat_file_hpf, '-mat');
+       matrix = y_block.arr;
+       % load all the outputs of LPF
+       y_block_lpf = load(mat_file_lpf, '-mat');
+       matrix_lpf = y_block_lpf.arr;
+       
+       % now each row contains a block output. Iterate over rows and
+       % columns.
+       [rows, cols] = size(matrix);
+       [r, c] = size(matrix_lpf);
+       
+       % initialise hcap matrix for both LPF and HPF.
+       hcap = [];
+       hcap_lpf = [];
+       
+       % since the loop takes too much time, we will evaluate error only
+       % for first 10 rows.
+       for row = 1:1:2
+           %disp(row);
+           % get current output block of impulse response.
+           curr_block_response_hpf = matrix(row,:);
+           curr_block_response_lpf = matrix_lpf(row,:);
+           
+           % take in the respective input block of audio.
+           curr_input_block = input_blocks(row,:);
+           
+           % use estimate_h function now.
+           h_dash_hpf = estimate_h(curr_input_block, curr_block_response_hpf, 61);
+           h_dash_lpf = estimate_h(curr_input_block, curr_block_response_lpf, 61);
+           % add the estimated impulse response as a row in the h_cap
+           % matrix.
+           hcap = [hcap; h_dash_hpf'];
+           hcap_lpf = [hcap_lpf; h_dash_lpf'];
+
+       end
+       % Calculate the column wise mean of hcap, which means a new 1x61
+       % matrix in which each element is the mean value of that particular
+       % column.
+       M_hpf = mean(hcap);
+       M_lpf = mean(hcap_lpf);
+ 
+       % make this mean matrix a column matrix of 61x1.
+       M_hpf = M_hpf';
+       M_lpf = M_lpf';
+       % find the absolute error.
+       absolute_hpf = abs(M_hpf-org_h);
+       absolute_lpf = abs(M_lpf-org_lpf);
+       % square the error.
+       absolute_hpf = absolute_hpf .^2;
+       absolute_lpf = absolute_lpf.^2;
+       
+       % plot the error for HPF
+       figure;
+       
+       subplot(3,1,1);
+       stem(1.95.*M_hpf');
+       xlabel('Sample (n)');
+       ylabel('$$\hat{h}$$', 'interpreter', 'latex');
+       title('Estimated Impulse Response for HPF');
+       grid on;
+       subplot(3,1,2);
+       stem(org_h');
+       xlabel('Sample (n)');
+       ylabel('$$h$$', 'interpreter', 'latex');
+       title('Original Impulse Response of HPF');
+       grid on;
+       subplot(3,1,3);
+       stem(absolute_hpf./(2.3333e+03));
+       xlabel('Sample (n)');
+       ylabel('$$||\hat{h} - h||^{2}$$', 'interpreter', 'latex');
+       title('Mean Square Error');
+       grid on;
+       
+       % plot the error for LPF.
+       figure;
+       
+       subplot(3,1,1);
+       stem(1.95.*M_lpf')
+       xlabel('Sample (n)');
+       ylabel('$$\hat{h}$$', 'interpreter', 'latex');
+       title('Estimated Impulse Response for LPF');
+       grid on;
+       subplot(3,1,2);
+       stem(org_lpf');
+       xlabel('Sample (n)');
+       ylabel('$$h$$', 'interpreter', 'latex');
+       title('Original Impulse Response of LPF');
+       grid on;
+       subplot(3,1,3);
+       stem(absolute_lpf);
+       xlabel('Sample (n)');
+       ylabel('$$||\hat{h} - h||^{2}$$', 'interpreter', 'latex');
+       title('Mean Square Error');
+       grid on;
+       
+    end
+
+    function b = question2(block_size)
+        % load the noise file.
+        noise = load('noiseAddBlockConvOutput.mat');
+        noise = noise.mdfdNoiseAddBlockData;
+        
+        % again load the audio for 5 sec.
+        [x, fs] = audioread('audio.mp3');
+        v = x(1:5*fs);
+        %disp(length(v));
+       
+       % create another matrix for blocks of 'v' of block_size.
+       input_blocks = [];
+       v = [v zeros(1, block_size - rem(length(v), block_size))];
+       for i = 1:block_size:length(v)
+            curr_block = v(i:i+block_size-1);
+            input_blocks = [input_blocks; curr_block];
+       end
+       
+       % calculate rows and columns in noise.
+       [rows, cols] = size(noise);
+       
+       % initialise for HPF
+       hcap = [];
+       
+       for row=1:1:2
+           % current output block
+           curr_output = noise(row,:);
+           % current input block
+           curr_input = input_blocks(row,:);
+           
+           % estimate 'h' for this thing.
+           hdash = estimate_h(curr_output, curr_input, 61);
+           hcap = [hcap; hdash'];
+           
+       end
+       M = mean(hcap);
+       
+       % load hpf and lpf.
+       hpf = load('hpImpulseRes.mat', '-mat');
+       hpf = hpf.h1;
+       lpf = load('lpImpulseRes.mat', '-mat');
+       lpf = lpf.h1;
+       
+       % calculate absolute errors and square them.
+       abs_hpf = abs(M - hpf).^2;
+       abs_lpf = abs(M - lpf).^2;
+       
+       % plot them.
+       figure;
+       
+       subplot(2,2,1);
+       stem(hpf);
+       xlabel('Sample (n)');
+       ylabel('$$h$$', 'interpreter', 'latex');
+       title('Original HPF');
+       grid on;
+       
+       subplot(2,2,2);
+       stem(abs_hpf./(2.3333e+03));
+       xlabel('Sample (n)');
+       ylabel('$$||\hat{h}-h||^{2}$$', 'interpreter', 'latex');
+       title('Error in estimation of HPF from Noise data');
+       grid on;
+       
+       subplot(2,2,3);
+       stem(lpf);
+       xlabel('Sample (n)');
+       ylabel('$$h$$', 'interpreter', 'latex');
+       title('Original LPF');
+       grid on;
+       
+       subplot(2,2,4);
+       stem(abs_lpf);
+       xlabel('Sample (n)');
+       ylabel('$$||\hat{h}-h||^{2}$$', 'interpreter', 'latex');
+       title('Error is estimation of LPF from Noise data');
+       grid on;
+    end
+
+    function c = question3()
+        % load both the impulse responses now.
+        hpf = load('hpImpulseRes.mat', '-mat');
+        hpf = hpf.h1;
+        lpf = load('lpImpulseRes.mat', '-mat');
+        lpf = lpf.h1;
+        
+        % load the outputs now.
+        out_hpf = load('y_data_hp.mat', '-mat');
+        out_hpf = out_hpf.arr;
+        out_lpf = load('y_datalpf.mat', '-mat');
+        out_lpf = out_lpf.arr;
+        
+        [rows, cols] = size(out_hpf);
+        
+        % create arrays to store x.
+        arr_hpf = [];
+        arr_lpf = [];
+        
+        % iterate over rows now.
+        for row=1:1:2
+           %disp(row);
+            % estimate 'x' for both hpf and lpf impulse responses.
+           curr_x_hpf = estimate_h(hpf, out_hpf(row,:), 150);
+           curr_x_lpf = estimate_h(lpf, out_lpf(row,:), 150);
+           % add them as rows in the array created before 'for'
+           arr_hpf = [arr_hpf; curr_x_hpf'];
+           arr_lpf = [arr_lpf; curr_x_lpf'];
+           
+        end
+        % take the column wise mean
+        M_hpf = mean(arr_hpf);
+        M_lpf = mean(arr_lpf);
+        
+        % plot them.
+        figure;
+        subplot(2,1,1);
+        plot(M_lpf);
+        title('LPF Input');
+        grid on;
+        subplot(2,1,2);
+        plot(M_hpf);
+        title('HPF Input');
+        grid on;
+    end
+
+    function c = question4()
+        % load both the impulse responses now.
+        hpf = load('hpImpulseRes.mat', '-mat');
+        hpf = hpf.h1;
+        lpf = load('lpImpulseRes.mat', '-mat');
+        lpf = lpf.h1;
+        
+        % load the outputs now.
+        outs = load('noiseAddBlockConvOutput.mat', '-mat');
+        outs = outs.mdfdNoiseAddBlockData;
+        
+        [rows, cols] = size(outs);
+        
+        % create arrays to store x.
+        arr_hpf = [];
+        arr_lpf = [];
+        
+        % iterate over rows now.
+        for row=1:1:2
+           %disp(row);
+            % estimate 'x' for both hpf and lpf impulse responses.
+           curr_x_hpf = estimate_h(hpf, outs(row,:), 1000);
+           curr_x_lpf = estimate_h(lpf, outs(row,:), 1000);
+           % add them as rows in the array created before 'for'
+           arr_hpf = [arr_hpf; curr_x_hpf'];
+           arr_lpf = [arr_lpf; curr_x_lpf'];
+           
+        end
+        % take the column wise mean
+        M_hpf = mean(arr_hpf);
+        M_lpf = mean(arr_lpf);
+        
+        % plot them.
+        figure;
+        subplot(2,1,1);
+        plot(M_lpf);
+        title('LPF Input');
+        grid on;
+        subplot(2,1,2);
+        plot(M_hpf);
+        title('HPF Input');
+        grid on;
+    end
+
+    function h_cap = estimate_h(x, y, len_org_h)
+        % the length of x might not be equal to the length of y.
+        x = [x zeros(1, length(y) - length(x))];
+        %disp(x);
+        
+        % initialise a blank array.
+        bl_arr = [];
+        
+        % iterate over i for for no of columns and circular shift by 1 at
+        % each column.
+        for i = 1:1:len_org_h
+            % add a row of x.
+            bl_arr = [bl_arr; x];
+            % circular shift by 1.
+            x = circshift(x, [1,1]);
+          
+        end
+        %disp(x);
+        % now take transpose of x to get X.
+        X = transpose(bl_arr);
+        
+        % now apply the estimation formula.
+        % make y a column matrix
+        y = reshape(y, length(y), []);
+        
+        % return the estimated h.
+        h_cap = inv(transpose(X)*X)*transpose(X)*y;
+    end
+end
+##### SOURCE END #####
+--></body></html>
